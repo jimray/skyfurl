@@ -19,3 +19,17 @@ curl -fsSL https://downloads.slack-edge.com/slack-cli/install.sh | bash
 
 * Python 3.8+
 * A Bluesky (or Blacksky) account with an [app password](https://bsky.app/settings/app-passwords)
+
+### Install
+
+Use the Slack CLI to install the app as a template
+
+```bash
+slack create --template https://tangled.org/jimray/skyfurl.git
+```
+
+### Configuration
+
+#### Adding more domains
+
+By default, SKYFURL will unfurl links from Bluesky and Blacksky. To add other microblogging services (e.g. Eurosky or Northsky), include the domains in the `manifest.yaml` file under the `unfurl_domains` param.

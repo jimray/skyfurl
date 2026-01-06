@@ -1,3 +1,9 @@
+"""
+A Slack app for unfurling ATProto microblog links
+
+Apps built on AT Protocol, such as Bluesky or Blacksky, show up just ok when posted to Slack.
+This app handles those links better by adding rich content, like video.
+"""
 import os
 import logging
 
