@@ -18,7 +18,6 @@ curl -fsSL https://downloads.slack-edge.com/slack-cli/install.sh | bash
 ```
 
 * Python 3.8+
-* A Bluesky (or Blacksky) account with an [app password](https://bsky.app/settings/app-passwords)
 
 ### Install
 

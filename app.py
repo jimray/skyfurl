@@ -10,14 +10,21 @@ import logging
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 
+from bluesky_client import BlueskyClient
+
 class SkyfurlApp:
     def __init__(self):
-        #Init the Slack app with bot token
+        #Init the Slack app
         self.app = App(
                 token=os.environ.get("SLACK_BOT_TOKEN"),
                 signing_secret=os.environ.get("SLACK_SIGNING_SECRET")
         )
 
+        # Init the Bluesky client (no auth needed for public posts)
+        # TODO: add optional auth via app password for fetching non-public posts?
+        self.bluesky_client = BlueskyClient()
+
+        # Register event handlers for Slack events (eg link_shared)
         self.register_handlers()
 
     def register_handlers(self):
@@ -42,7 +49,7 @@ class SkyfurlApp:
             if unfurls:
                 try:
                     client.chat_unfurl(
-                            channel=event["channl"],
+                            channel=event["channel"],
                             ts=event["message_ts"],
                             unfurls=unfurls
                     )
