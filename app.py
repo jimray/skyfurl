@@ -43,7 +43,7 @@ class SkyfurlApp:
 
                 unfurl_data = self.create_unfurl(url)
                 if unfurl_data:
-                    unfurls[url]
+                    unfurls[url] = unfurl_data
 
             # Send unfurls back to Slack
             if unfurls:

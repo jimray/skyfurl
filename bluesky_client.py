@@ -17,7 +17,8 @@ SUPPORTED_DOMAINS = [
 class BlueskyClient:
     def __init__(self):
         # Always create a client - it can be used without authentication for public posts
-        self.client = Client()
+        # Use the public API endpoint which allows access to public posts without auth
+        self.client = Client(base_url='https://public.api.bsky.app')
         self.authenticated = False
 
     def login_with_password(self, handle: str, password: str):
