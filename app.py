@@ -126,4 +126,4 @@ class SkyfurlApp:
 
 if __name__ == "__main__":
     app = SkyfurlApp()
-    app.start
+    app.start()
