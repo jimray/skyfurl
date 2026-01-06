@@ -1,0 +1,46 @@
+{
+  "_metadata": {
+      "major_version": 2,
+      "minor_version": 1
+  },
+  "display_information": {
+      "name": "SKYFURL"
+  },
+  "features": {
+      "app_home": {
+          "home_tab_enabled": true,
+          "messages_tab_enabled": false,
+          "messages_tab_read_only_enabled": true
+      },
+      "bot_user": {
+          "display_name": "SKYFURL",
+          "always_online": true
+      },
+      "unfurl_domains": [
+        "bsky.app",
+        "blacksky.community"
+      ]
+  },
+  "oauth_config": {
+      "scopes": {
+          "bot": [
+              "links:read",
+              "links:write"
+          ]
+      }
+  },
+  "settings": {
+      "event_subscriptions": {
+          "bot_events": [
+              "app_home_opened",
+              "link_shared"
+          ]
+      },
+      "interactivity": {
+          "is_enabled": true
+      },
+      "org_deploy_enabled": false,
+      "socket_mode_enabled": true,
+      "token_rotation_enabled": false
+  }
+}
