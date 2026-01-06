@@ -64,13 +64,66 @@ class SkyfurlApp:
         Returns a Slack attachment for the unfurl
         """
         # Extract post info from the URL
+        post_info = self.bluesky_client.extract_post_info(url)
+        if not post_info:
+            return None
+
+        post_data = self.bluesky_client.get_post(
+                post_info['handle'],
+                post_info['post_id']
+        )
+
+        if not post_data:
+            # Return a message the post couldn't be fetched
+            return{
+                "blocks": [
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": "  *Post not accessible*\n\nThis post may not be viewable without being logged in or has been deleted."
+                        }
+                    }
+                ]
+            }
+
+        # Build the blocks for the unfurl
+        unfurl_blocks = []
+
+        # Author header
+        author = post_data.get('author', {})
+        author_text = f"*{author.get('display_name', 'Unknown')}*"
+        if author.get('handle'):
+            author_text += f" @{author['handle']}"
+
+        unfurl_blocks.append({
+            "type": "context",
+            "elements": [
+                {
+                    "type": "mrkdwn",
+                    "text": author_text
+                }
+            ]
+        })
+
+        return {"blocks": unfurl_blocks}
 
     def start(self):
         """Start the Slack app"""
         port = int(os.environ.get("PORT", 3000))
 
+        # Use HTTP mode by default
+        # Socket Mode is mostly for local dev
+        socket_token = os.environ.get("SLACK_APP_TOKEN")
+        if socket_token:
+            handler = SocketModeHandler(self.app, socket_token)
+            print("🔌 Slack app is running in Socket Mode")
+            handler.start()
+        else:
+            print(f"⚡️ Slack app is running on port {port}!")
+            self.app.start(port=port)
+
 
 if __name__ == "__main__":
     app = SkyfurlApp()
     app.start
-
