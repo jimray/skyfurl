@@ -38,9 +38,6 @@ class SkyfurlApp:
         # Register event handlers for Slack events (eg link_shared)
         self.register_handlers()
 
-        # Register HTTP routes for serving videos
-        self.register_routes()
-
     def register_handlers(self):
         """Register Salck event handlers"""
 
@@ -213,6 +210,8 @@ class SkyfurlApp:
             print("🔌 Slack app is running in Socket Mode")
             handler.start()
         else:
+            # Register HTTP routes for serving videos (only needed in HTTP mode)
+            self.register_routes()
             print(f"⚡️ Slack app is running on port {port}!")
             self.app.start(port=port)
 
