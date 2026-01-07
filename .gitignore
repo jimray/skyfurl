@@ -37,3 +37,12 @@ logs/
 *.db
 .pytype/
 .idea/
+
+# Claude Code
+.claude/
+
+# Slack CLI
+.slack/
+
+# Processed videos
+videos/
