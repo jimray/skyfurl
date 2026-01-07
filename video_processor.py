@@ -4,10 +4,8 @@ Video processor for downloading and stitching Bluesky M3U8 videos
 import os
 import uuid
 import subprocess
-import requests
 from pathlib import Path
 from typing import Optional
-from urllib.parse import urljoin
 
 
 class VideoProcessor:

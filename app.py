@@ -11,10 +11,11 @@ from typing import Dict, Any
 
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
-from flask import send_file, render_template_string
 
 from bluesky_client import BlueskyClient
 from video_processor import VideoProcessor
+from unfurl_builder import UnfurlBuilder
+from player_template import render_video_player
 
 class SkyfurlApp:
     def __init__(self):
@@ -30,6 +31,9 @@ class SkyfurlApp:
 
         # Init video processor
         self.video_processor = VideoProcessor()
+
+        # Init unfurl builder
+        self.unfurl_builder = UnfurlBuilder(self.bluesky_client)
 
         # Register event handlers for Slack events (eg link_shared)
         self.register_handlers()
@@ -69,6 +73,7 @@ class SkyfurlApp:
 
     def register_routes(self):
         """Register HTTP routes for serving videos"""
+        from flask import send_file, Response
 
         @self.app.server.route("/videos/<video_id>.mp4")
         def serve_video(video_id):
@@ -91,41 +96,7 @@ class SkyfurlApp:
             """Serve HTML video player page (iframe-embeddable)"""
             app_url = os.environ.get("APP_URL", "http://localhost:3000")
             video_url = f"{app_url}/videos/{video_id}.mp4"
-
-            # Simple HTML5 video player
-            player_html = f"""
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>Video Player</title>
-                <style>
-                    body {{
-                        margin: 0;
-                        padding: 0;
-                        background: #000;
-                        display: flex;
-                        justify-content: center;
-                        align-items: center;
-                        min-height: 100vh;
-                    }}
-                    video {{
-                        max-width: 100%;
-                        max-height: 100vh;
-                        width: 100%;
-                    }}
-                </style>
-            </head>
-            <body>
-                <video controls autoplay>
-                    <source src="{video_url}" type="video/mp4">
-                    Your browser does not support the video tag.
-                </video>
-            </body>
-            </html>
-            """
-            return render_template_string(player_html)
+            return Response(render_video_player(video_url), mimetype='text/html')
 
     def create_unfurl(self, url: str, event: Dict[str, Any], client) -> Dict[str, Any]:
         """
@@ -133,80 +104,31 @@ class SkyfurlApp:
 
         Returns a Slack attachment for the unfurl
         """
-        # Extract post info from the URL
-        post_info = self.bluesky_client.extract_post_info(url)
-        if not post_info:
+        # Create initial unfurl using builder
+        unfurl_data = self.unfurl_builder.create_unfurl(url)
+
+        if not unfurl_data:
             return None
 
-        post_data = self.bluesky_client.get_post(
+        # Check if post has video - start background processing
+        post_info = self.bluesky_client.extract_post_info(url)
+        if post_info:
+            post_data = self.bluesky_client.get_post(
                 post_info['handle'],
                 post_info['post_id']
-        )
+            )
 
-        if not post_data:
-            # Return a message the post couldn't be fetched
-            return{
-                "blocks": [
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": "  *Post not accessible*\n\nThis post may not be viewable without being logged in or has been deleted."
-                        }
-                    }
-                ]
-            }
+            if post_data:
+                video = post_data.get('video')
+                if video and video.get('has_video'):
+                    # Start background video processing
+                    threading.Thread(
+                        target=self.process_video_background,
+                        args=(url, video, event["channel"], event["message_ts"], client),
+                        daemon=True
+                    ).start()
 
-        # Build the blocks for the unfurl
-        unfurl_blocks = []
-
-        # Author header
-        author = post_data.get('author', {})
-        author_text = f"*{author.get('display_name', 'Unknown')}*"
-        if author.get('handle'):
-            author_text += f" @{author['handle']}"
-
-        unfurl_blocks.append({
-            "type": "context",
-            "elements": [
-                {
-                    "type": "mrkdwn",
-                    "text": author_text
-                }
-            ]
-        })
-
-        # Post text
-        text = post_data.get('text', '')
-        if text:
-            unfurl_blocks.append({
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": text
-                }
-            })
-
-        # Video - show placeholder and process in background
-        video = post_data.get('video')
-        if video and video.get('has_video'):
-            # Show "processing" placeholder
-            unfurl_blocks.append({
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "🎬 *Processing video...* ⏳"
-                }
-            })
-
-            # Start background video processing
-            threading.Thread(
-                target=self.process_video_background,
-                args=(url, video, event["channel"], event["message_ts"], client),
-                daemon=True
-            ).start()
-
-        return {"blocks": unfurl_blocks}
+        return unfurl_data
 
     def process_video_background(self, url: str, video: Dict[str, Any], channel: str, ts: str, client):
         """
@@ -243,64 +165,17 @@ class SkyfurlApp:
     def _update_unfurl_with_video(self, url: str, channel: str, ts: str, client, player_url: str, thumbnail_url: str):
         """Update the unfurl with the processed video"""
         try:
-            # Get the original post data again to rebuild the unfurl
-            post_info = self.bluesky_client.extract_post_info(url)
-            if not post_info:
+            # Create complete unfurl with video using builder
+            unfurl_data = self.unfurl_builder.create_complete_unfurl(url, player_url, thumbnail_url)
+
+            if not unfurl_data:
                 return
-
-            post_data = self.bluesky_client.get_post(
-                post_info['handle'],
-                post_info['post_id']
-            )
-
-            if not post_data:
-                return
-
-            # Rebuild unfurl blocks
-            unfurl_blocks = []
-
-            # Author header
-            author = post_data.get('author', {})
-            author_text = f"*{author.get('display_name', 'Unknown')}*"
-            if author.get('handle'):
-                author_text += f" @{author['handle']}"
-
-            unfurl_blocks.append({
-                "type": "context",
-                "elements": [
-                    {
-                        "type": "mrkdwn",
-                        "text": author_text
-                    }
-                ]
-            })
-
-            # Post text
-            text = post_data.get('text', '')
-            if text:
-                unfurl_blocks.append({
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": text
-                    }
-                })
-
-            # Video block
-            video_block = {
-                "type": "video",
-                "video_url": player_url,
-                "alt_text": "Video from Bluesky post",
-                "title": {"type": "plain_text", "text": "Video", "emoji": True},
-                "thumbnail_url": thumbnail_url
-            }
-            unfurl_blocks.append(video_block)
 
             # Update the unfurl
             client.chat_unfurl(
                 channel=channel,
                 ts=ts,
-                unfurls={url: {"blocks": unfurl_blocks}}
+                unfurls={url: unfurl_data}
             )
 
         except Exception as e:
@@ -309,63 +184,18 @@ class SkyfurlApp:
     def _update_unfurl_with_error(self, url: str, channel: str, ts: str, client):
         """Update the unfurl with an error message"""
         try:
-            # Get the original post data to maintain context
-            post_info = self.bluesky_client.extract_post_info(url)
-            if not post_info:
+            # Create error unfurl using builder
+            error_message = "🎥 *Video processing failed* - Click link to view on Bluesky"
+            unfurl_data = self.unfurl_builder.create_error_unfurl(url, error_message)
+
+            if not unfurl_data:
                 return
-
-            post_data = self.bluesky_client.get_post(
-                post_info['handle'],
-                post_info['post_id']
-            )
-
-            if not post_data:
-                return
-
-            # Rebuild unfurl blocks with error
-            unfurl_blocks = []
-
-            # Author header
-            author = post_data.get('author', {})
-            author_text = f"*{author.get('display_name', 'Unknown')}*"
-            if author.get('handle'):
-                author_text += f" @{author['handle']}"
-
-            unfurl_blocks.append({
-                "type": "context",
-                "elements": [
-                    {
-                        "type": "mrkdwn",
-                        "text": author_text
-                    }
-                ]
-            })
-
-            # Post text
-            text = post_data.get('text', '')
-            if text:
-                unfurl_blocks.append({
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": text
-                    }
-                })
-
-            # Error message
-            unfurl_blocks.append({
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "🎥 *Video processing failed* - Click link to view on Bluesky"
-                }
-            })
 
             # Update the unfurl
             client.chat_unfurl(
                 channel=channel,
                 ts=ts,
-                unfurls={url: {"blocks": unfurl_blocks}}
+                unfurls={url: unfurl_data}
             )
 
         except Exception as e:
