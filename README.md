@@ -76,10 +76,10 @@ PORT=3000
 #### System Packages (Required for video processing):
 
 ```
-NIXPACKS_APT_PKGS=ffmpeg
+RAILPACK_DEPLOY_APT_PACKAGES=ffmpeg
 ```
 
-**NIXPACKS_APT_PKGS**: Installs ffmpeg for video processing. This is required for the app to download and process videos from Bluesky posts.
+**RAILPACK_DEPLOY_APT_PACKAGES**: Installs ffmpeg at runtime for video processing. This is required for the app to download and process videos from Bluesky posts.
 
 #### Optional Variables:
 
