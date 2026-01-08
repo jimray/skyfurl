@@ -191,3 +191,87 @@ Railway will automatically redeploy on push to main branch.
 - Set up a custom domain instead of Railway's default
 - Add error monitoring (Sentry, etc.)
 - Implement video cleanup/expiry for old videos
+
+## OAuth Installation (Multi-Workspace Support)
+
+For public distribution or installing in multiple workspaces, use OAuth instead of manual token configuration.
+
+### Benefits of OAuth
+
+- **Easy installation**: Users can install with an "Add to Slack" button
+- **Multi-workspace**: Support installations in multiple Slack workspaces
+- **Automatic token management**: No need to manually configure tokens
+- **Better security**: Tokens are stored securely in SQLite database
+
+### Setup OAuth on Railway
+
+#### Step 1: Get OAuth Credentials
+
+1. Go to https://api.slack.com/apps → Your App
+2. Navigate to "OAuth & Permissions"
+3. Under "Redirect URLs", add:
+   ```
+   https://your-app.up.railway.app/slack/oauth_redirect
+   ```
+4. Go to "Basic Information"
+5. Copy your **Client ID** and **Client Secret**
+
+#### Step 2: Update Environment Variables
+
+Add these to your Railway environment variables:
+
+```
+SLACK_CLIENT_ID=your-client-id-here
+SLACK_CLIENT_SECRET=your-client-secret-here
+```
+
+**Note**: When OAuth credentials are present, the app automatically uses OAuth mode. You can **remove** `SLACK_BOT_TOKEN` as it's no longer needed.
+
+#### Step 3: Update Slack App Settings
+
+1. Go to "OAuth & Permissions"
+2. Set the following **Bot Token Scopes**:
+   - `links:read`
+   - `links:write`
+
+3. Go to "Event Subscriptions"
+4. Ensure Request URL is still: `https://your-app.up.railway.app/slack/events`
+
+#### Step 4: Create "Add to Slack" Button
+
+Users can install your app by visiting:
+```
+https://your-app.up.railway.app/slack/install
+```
+
+Or create an "Add to Slack" button:
+
+```html
+<a href="https://your-app.up.railway.app/slack/install">
+  <img alt="Add to Slack" height="40" width="139"
+       src="https://platform.slack-edge.com/img/add_to_slack.png"
+       srcSet="https://platform.slack-edge.com/img/add_to_slack.png 1x, https://platform.slack-edge.com/img/add_to_slack@2x.png 2x" />
+</a>
+```
+
+### OAuth Storage
+
+Installation tokens are stored in `slack_installations.db` (SQLite database):
+
+- Automatically created on first OAuth installation
+- Stores bot tokens, team IDs, and installation metadata
+- Excluded from git via `.gitignore`
+- On Railway, persists between deployments (unless you reset the environment)
+
+### OAuth vs Bot Token Mode
+
+**Bot Token Mode** (single workspace):
+- Set `SLACK_BOT_TOKEN` and `SLACK_SIGNING_SECRET`
+- Manual token configuration
+- One workspace only
+
+**OAuth Mode** (multi-workspace):
+- Set `SLACK_CLIENT_ID`, `SLACK_CLIENT_SECRET`, and `SLACK_SIGNING_SECRET`
+- Automatic "Add to Slack" installation flow
+- Multiple workspaces supported
+- Tokens stored in SQLite database

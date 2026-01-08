@@ -46,3 +46,7 @@ logs/
 
 # Processed videos
 videos/
+
+# OAuth installation data
+slack_installations.db
+.bolt-*

@@ -11,19 +11,44 @@ from typing import Dict, Any
 
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
+from slack_bolt.oauth.oauth_settings import OAuthSettings
+from slack_sdk.oauth.state_store import FileOAuthStateStore
 
 from bluesky_client import BlueskyClient
 from video_processor import VideoProcessor
 from unfurl_builder import UnfurlBuilder
 from player_template import render_video_player
+from sqlite_installation_store import SQLiteInstallationStore
 
 class SkyfurlApp:
     def __init__(self):
         #Init the Slack app
-        self.app = App(
+        # Check if OAuth credentials are provided
+        client_id = os.environ.get("SLACK_CLIENT_ID")
+        client_secret = os.environ.get("SLACK_CLIENT_SECRET")
+
+        if client_id and client_secret:
+            # OAuth mode - for public "Add to Slack" installations
+            print("🔐 Initializing with OAuth support")
+            self.app = App(
+                signing_secret=os.environ.get("SLACK_SIGNING_SECRET"),
+                installation_store=SQLiteInstallationStore(),
+                oauth_settings=OAuthSettings(
+                    client_id=client_id,
+                    client_secret=client_secret,
+                    scopes=["links:read", "links:write"],
+                    install_path="/slack/install",
+                    redirect_uri_path="/slack/oauth_redirect",
+                    state_store=FileOAuthStateStore(expiration_seconds=600)
+                )
+            )
+        else:
+            # Simple mode - single workspace with bot token
+            print("🤖 Initializing with bot token")
+            self.app = App(
                 token=os.environ.get("SLACK_BOT_TOKEN"),
                 signing_secret=os.environ.get("SLACK_SIGNING_SECRET")
-        )
+            )
 
         # Init the Bluesky client (no auth needed for public posts)
         # TODO: add optional auth via app password for fetching non-public posts?
