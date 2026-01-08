@@ -143,7 +143,7 @@ Since you're deploying with HTTP endpoints:
 ### Step 5: Test the Deployment
 
 1. Post a Bluesky link in any Slack channel where the app is installed
-   - Example: https://bsky.app/profile/bsky.app/post/3l47mye63hc2v
+   - Example: https://bsky.app/profile/johnxuandou.bsky.social/post/3lwb5uektm22l
 2. The app should unfurl the link with author information and text
 3. If the post has a video, it will show "🎬 Processing video... ⏳" initially
 4. After processing completes (may take 30-60 seconds), the video player should appear
