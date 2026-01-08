@@ -13,9 +13,7 @@ tests/
 *.pyc
 __pycache__/
 
-# Documentation
-*.md
-!DEPLOY.md
+# Documentation (kept in README.md)
 
 # IDE
 .vscode/
