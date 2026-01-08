@@ -57,13 +57,13 @@ class UnfurlBuilder:
 
         return {"blocks": unfurl_blocks}
 
-    def create_complete_unfurl(self, url: str, player_url: str, thumbnail_url: str) -> Dict[str, Any]:
+    def create_complete_unfurl(self, url: str, video_url: str, thumbnail_url: str) -> Dict[str, Any]:
         """
         Create complete unfurl with processed video
 
         Args:
             url: Bluesky post URL
-            player_url: URL to iframe-embeddable video player
+            video_url: Direct URL to video file (.mp4)
             thumbnail_url: URL to video thumbnail
 
         Returns:
@@ -94,7 +94,7 @@ class UnfurlBuilder:
             unfurl_blocks.append(self._build_text_block(text))
 
         # Add video block
-        unfurl_blocks.append(self._build_video_block(player_url, thumbnail_url))
+        unfurl_blocks.append(self._build_video_block(video_url, thumbnail_url))
 
         return {"blocks": unfurl_blocks}
 
@@ -181,11 +181,11 @@ class UnfurlBuilder:
             }
         }
 
-    def _build_video_block(self, player_url: str, thumbnail_url: str) -> Dict[str, Any]:
+    def _build_video_block(self, video_url: str, thumbnail_url: str) -> Dict[str, Any]:
         """Build video player block"""
         return {
             "type": "video",
-            "video_url": player_url,
+            "video_url": video_url,
             "alt_text": "Video from Bluesky post",
             "title": {"type": "plain_text", "text": "Video", "emoji": True},
             "thumbnail_url": thumbnail_url

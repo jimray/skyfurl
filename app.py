@@ -291,12 +291,12 @@ class SkyfurlApp:
             # Get the app's public URL (for serving videos)
             app_url = os.environ.get("APP_URL", "http://localhost:3000")
 
-            # Build video player URL
-            player_url = f"{app_url}/player/{video_id}"
+            # Build video URLs - Slack video block needs direct video file URL
+            video_url = f"{app_url}/videos/{video_id}.mp4"
             thumbnail_url = f"{app_url}/videos/{video_id}/thumbnail.jpg"
 
             # Update unfurl with video block
-            self._update_unfurl_with_video(url, channel, ts, client, player_url, thumbnail_url)
+            self._update_unfurl_with_video(url, channel, ts, client, video_url, thumbnail_url)
 
             print(f"Successfully processed video for {url}")
 
@@ -304,11 +304,11 @@ class SkyfurlApp:
             print(f"Error processing video: {e}")
             self._update_unfurl_with_error(url, channel, ts, client)
 
-    def _update_unfurl_with_video(self, url: str, channel: str, ts: str, client, player_url: str, thumbnail_url: str):
+    def _update_unfurl_with_video(self, url: str, channel: str, ts: str, client, video_url: str, thumbnail_url: str):
         """Update the unfurl with the processed video"""
         try:
             # Create complete unfurl with video using builder
-            unfurl_data = self.unfurl_builder.create_complete_unfurl(url, player_url, thumbnail_url)
+            unfurl_data = self.unfurl_builder.create_complete_unfurl(url, video_url, thumbnail_url)
 
             if not unfurl_data:
                 return
