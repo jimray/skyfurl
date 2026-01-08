@@ -73,6 +73,14 @@ APP_URL=https://your-app.up.railway.app
 PORT=3000
 ```
 
+#### System Packages (Required for video processing):
+
+```
+NIXPACKS_APT_PKGS=ffmpeg
+```
+
+**NIXPACKS_APT_PKGS**: Installs ffmpeg for video processing. This is required for the app to download and process videos from Bluesky posts.
+
 #### Optional Variables:
 
 ```
