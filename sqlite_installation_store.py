@@ -35,7 +35,6 @@ class SQLiteInstallationStore(InstallationStore):
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS installations (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                client_id TEXT NOT NULL,
                 app_id TEXT NOT NULL,
                 enterprise_id TEXT,
                 enterprise_name TEXT,
@@ -60,7 +59,7 @@ class SQLiteInstallationStore(InstallationStore):
                 is_enterprise_install INTEGER,
                 token_type TEXT,
                 installed_at INTEGER NOT NULL,
-                UNIQUE(client_id, enterprise_id, team_id, user_id)
+                UNIQUE(enterprise_id, team_id, user_id)
             )
         """)
 
@@ -85,16 +84,15 @@ class SQLiteInstallationStore(InstallationStore):
 
         cursor.execute("""
             INSERT OR REPLACE INTO installations (
-                client_id, app_id, enterprise_id, enterprise_name, enterprise_url,
+                app_id, enterprise_id, enterprise_name, enterprise_url,
                 team_id, team_name, bot_token, bot_id, bot_user_id, bot_scopes,
                 bot_refresh_token, bot_token_expires_at, user_id, user_token,
                 user_scopes, user_refresh_token, user_token_expires_at,
                 incoming_webhook_url, incoming_webhook_channel,
                 incoming_webhook_channel_id, incoming_webhook_configuration_url,
                 is_enterprise_install, token_type, installed_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
-            installation.client_id,
             installation.app_id,
             installation.enterprise_id,
             installation.enterprise_name,
