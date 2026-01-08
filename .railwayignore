@@ -1,0 +1,37 @@
+# Railway ignore file - exclude from deployment
+
+# Development
+.venv/
+venv/
+env/
+.env*
+
+# Testing
+tests/
+.pytest_cache/
+.coverage
+*.pyc
+__pycache__/
+
+# Documentation
+*.md
+!DEPLOY.md
+
+# IDE
+.vscode/
+.idea/
+.claude/
+
+# Slack CLI (for local dev only)
+.slack/
+
+# Git
+.git/
+.gitignore
+
+# Processed videos (will be created on Railway)
+videos/
+
+# Misc
+.DS_Store
+*.log
