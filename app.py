@@ -11,8 +11,10 @@ from typing import Dict, Any
 
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
+from slack_bolt.adapter.flask import SlackRequestHandler
 from slack_bolt.oauth.oauth_settings import OAuthSettings
 from slack_sdk.oauth.state_store import FileOAuthStateStore
+from flask import Flask, send_file, Response, request
 
 from bluesky_client import BlueskyClient
 from video_processor import VideoProcessor
@@ -60,6 +62,10 @@ class SkyfurlApp:
         # Init unfurl builder
         self.unfurl_builder = UnfurlBuilder(self.bluesky_client)
 
+        # Create Flask app for HTTP mode
+        self.flask_app = Flask(__name__)
+        self.handler = SlackRequestHandler(self.app)
+
         # Register event handlers for Slack events (eg link_shared)
         self.register_handlers()
 
@@ -94,10 +100,23 @@ class SkyfurlApp:
                     print(f"Effor unfurling: {e}")
 
     def register_routes(self):
-        """Register HTTP routes for serving videos"""
-        from flask import send_file, Response
+        """Register HTTP routes for serving videos and Slack events"""
 
-        @self.app.server.route("/videos/<video_id>.mp4")
+        # Slack event endpoints
+        @self.flask_app.route("/slack/events", methods=["POST"])
+        def slack_events():
+            return self.handler.handle(request)
+
+        @self.flask_app.route("/slack/install", methods=["GET"])
+        def slack_install():
+            return self.handler.handle(request)
+
+        @self.flask_app.route("/slack/oauth_redirect", methods=["GET"])
+        def slack_oauth_redirect():
+            return self.handler.handle(request)
+
+        # Video serving endpoints
+        @self.flask_app.route("/videos/<video_id>.mp4")
         def serve_video(video_id):
             """Serve processed video file"""
             video_path = self.video_processor.get_video_path(video_id)
@@ -105,7 +124,7 @@ class SkyfurlApp:
                 return send_file(video_path, mimetype='video/mp4')
             return "Video not found", 404
 
-        @self.app.server.route("/videos/<video_id>/thumbnail.jpg")
+        @self.flask_app.route("/videos/<video_id>/thumbnail.jpg")
         def serve_thumbnail(video_id):
             """Serve video thumbnail"""
             thumbnail_path = self.video_processor.get_thumbnail_path(video_id)
@@ -113,7 +132,7 @@ class SkyfurlApp:
                 return send_file(thumbnail_path, mimetype='image/jpeg')
             return "Thumbnail not found", 404
 
-        @self.app.server.route("/player/<video_id>")
+        @self.flask_app.route("/player/<video_id>")
         def serve_player(video_id):
             """Serve HTML video player page (iframe-embeddable)"""
             app_url = os.environ.get("APP_URL", "http://localhost:3000")
@@ -238,7 +257,7 @@ class SkyfurlApp:
             # Register HTTP routes for serving videos (only needed in HTTP mode)
             self.register_routes()
             print(f"⚡️ Slack app is running on port {port}!")
-            self.app.start(port=port)
+            self.flask_app.run(host="0.0.0.0", port=port)
 
 
 if __name__ == "__main__":
