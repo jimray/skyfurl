@@ -73,6 +73,14 @@ APP_URL=https://your-app.up.railway.app
 PORT=3000
 ```
 
+#### Optional Variables:
+
+```
+APPROVED_WORKSPACES=My Workspace,Another Workspace,Third Workspace
+```
+
+**APPROVED_WORKSPACES**: Comma-separated list of workspace names allowed to install this app via OAuth. If not set, all workspaces can install. Use this to restrict installations to specific workspaces. Unapproved workspaces will see a friendly error message during OAuth installation.
+
 #### Where to find these values:
 
 1. **SLACK_BOT_TOKEN**:
@@ -226,6 +234,16 @@ SLACK_CLIENT_SECRET=your-client-secret-here
 ```
 
 **Note**: When OAuth credentials are present, the app automatically uses OAuth mode. You can **remove** `SLACK_BOT_TOKEN` as it's no longer needed.
+
+**Optional - Restrict Workspace Access**:
+
+To restrict which workspaces can install your app, add the `APPROVED_WORKSPACES` environment variable:
+
+```
+APPROVED_WORKSPACES=My Workspace,Another Workspace,Third Workspace
+```
+
+This is a comma-separated list of workspace names that are allowed to install the app. Workspaces not on this list will see a friendly error message during OAuth installation. If this variable is not set, all workspaces can install the app.
 
 #### Step 3: Update Slack App Settings
 

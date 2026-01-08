@@ -20,7 +20,7 @@ from bluesky_client import BlueskyClient
 from video_processor import VideoProcessor
 from unfurl_builder import UnfurlBuilder
 from player_template import render_video_player
-from sqlite_installation_store import SQLiteInstallationStore
+from validated_installation_store import ValidatedInstallationStore, WorkspaceNotApprovedException
 
 class SkyfurlApp:
     def __init__(self):
@@ -34,14 +34,15 @@ class SkyfurlApp:
             print("🔐 Initializing with OAuth support")
             self.app = App(
                 signing_secret=os.environ.get("SLACK_SIGNING_SECRET"),
-                installation_store=SQLiteInstallationStore(),
+                installation_store=ValidatedInstallationStore(),
                 oauth_settings=OAuthSettings(
                     client_id=client_id,
                     client_secret=client_secret,
                     scopes=["links:read", "links:write"],
                     install_path="/slack/install",
                     redirect_uri_path="/slack/oauth_redirect",
-                    state_store=FileOAuthStateStore(expiration_seconds=600)
+                    state_store=FileOAuthStateStore(expiration_seconds=600),
+                    install_page_rendering_enabled=False
                 )
             )
         else:
@@ -113,7 +114,107 @@ class SkyfurlApp:
 
         @self.flask_app.route("/slack/oauth_redirect", methods=["GET"])
         def slack_oauth_redirect():
-            return self.handler.handle(request)
+            try:
+                return self.handler.handle(request)
+            except WorkspaceNotApprovedException as e:
+                # Return friendly error page for unapproved workspaces
+                error_html = f"""
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Installation Not Approved</title>
+                    <style>
+                        body {{
+                            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                            display: flex;
+                            justify-content: center;
+                            align-items: center;
+                            height: 100vh;
+                            margin: 0;
+                            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        }}
+                        .container {{
+                            background: white;
+                            padding: 3rem;
+                            border-radius: 12px;
+                            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+                            max-width: 500px;
+                            text-align: center;
+                        }}
+                        h1 {{
+                            color: #333;
+                            margin-bottom: 1rem;
+                        }}
+                        p {{
+                            color: #666;
+                            line-height: 1.6;
+                        }}
+                        .emoji {{
+                            font-size: 4rem;
+                            margin-bottom: 1rem;
+                        }}
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <div class="emoji">🔒</div>
+                        <h1>Workspace Not Approved</h1>
+                        <p>{str(e)}</p>
+                    </div>
+                </body>
+                </html>
+                """
+                return Response(error_html, status=403, mimetype='text/html')
+            except Exception as e:
+                # Handle other unexpected errors
+                print(f"OAuth redirect error: {e}")
+                error_html = """
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Installation Error</title>
+                    <style>
+                        body {{
+                            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                            display: flex;
+                            justify-content: center;
+                            align-items: center;
+                            height: 100vh;
+                            margin: 0;
+                            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        }}
+                        .container {{
+                            background: white;
+                            padding: 3rem;
+                            border-radius: 12px;
+                            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+                            max-width: 500px;
+                            text-align: center;
+                        }}
+                        h1 {{
+                            color: #333;
+                            margin-bottom: 1rem;
+                        }}
+                        p {{
+                            color: #666;
+                            line-height: 1.6;
+                        }}
+                        .emoji {{
+                            font-size: 4rem;
+                            margin-bottom: 1rem;
+                        }}
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <div class="emoji">⚠️</div>
+                        <h1>Installation Failed</h1>
+                        <p>An error occurred during installation. Please try again or contact the app administrator.</p>
+                    </div>
+                </body>
+                </html>
+                """
+                return Response(error_html, status=500, mimetype='text/html')
 
         # Video serving endpoints
         @self.flask_app.route("/videos/<video_id>.mp4")
