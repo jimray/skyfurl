@@ -60,6 +60,21 @@ This guide walks you through deploying SKYFURL to Railway.
 3. Choose this repository
 4. Railway will automatically detect it as a Python app
 
+### Step 1.5: Create a Volume for Database Persistence
+
+**IMPORTANT**: Railway's filesystem is ephemeral - it resets on every deployment. To persist your OAuth tokens and installation data, you MUST create a volume:
+
+1. In your Railway project, click on your service
+2. Go to the **Settings** tab
+3. Scroll down to **Volumes**
+4. Click **+ New Volume**
+5. Set:
+   - **Mount Path**: `/app/data`
+   - **Name**: `skyfurl-data` (or any name you prefer)
+6. Click **Add**
+
+Your SQLite database will now persist across deployments!
+
 ### Step 2: Configure Environment Variables
 
 In your Railway project settings, add these environment variables:
@@ -71,6 +86,7 @@ SLACK_BOT_TOKEN=xoxb-your-bot-token-here
 SLACK_SIGNING_SECRET=your-signing-secret-here
 APP_URL=https://your-app.up.railway.app
 PORT=3000
+DATABASE_PATH=/app/data/slack_installations.db
 ```
 
 #### System Packages (Required for video processing):
@@ -120,9 +136,9 @@ After your Railway app is deployed, update your Slack app settings:
 3. Set Request URL to: `https://your-app.up.railway.app/slack/events`
 4. Wait for Slack to verify the URL (should show green checkmark)
 
-#### 3.2 Add Unfurl Domain
+#### 3.2 Add Unfurl Domains
 
-For video embeds to work in Slack:
+**CRITICAL for video embeds**: You MUST add your Railway domain to the unfurl_domains list, otherwise Slack will reject video blocks:
 
 1. Go to "App Manifest" in your Slack app settings
 2. Add your Railway domain to `unfurl_domains`:
@@ -133,7 +149,9 @@ For video embeds to work in Slack:
      "your-app.up.railway.app"
    ]
    ```
+   **Note**: Replace `your-app.up.railway.app` with your actual Railway domain (without https://)
 3. Save the manifest
+4. **Reinstall the app** after changing the manifest (this is required!)
 
 #### 3.3 Disable Socket Mode
 

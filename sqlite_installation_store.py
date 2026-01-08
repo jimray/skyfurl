@@ -24,6 +24,12 @@ class SQLiteInstallationStore(InstallationStore):
             database: Path to SQLite database file
         """
         self.database = database
+
+        # Ensure the directory exists
+        db_dir = Path(database).parent
+        if db_dir != Path('.'):
+            db_dir.mkdir(parents=True, exist_ok=True)
+
         self._init_db()
 
     def _init_db(self):

@@ -32,9 +32,13 @@ class SkyfurlApp:
         if client_id and client_secret:
             # OAuth mode - for public "Add to Slack" installations
             print("🔐 Initializing with OAuth support")
+
+            # Use volume path for database on Railway, or local path for dev
+            db_path = os.environ.get("DATABASE_PATH", "slack_installations.db")
+
             self.app = App(
                 signing_secret=os.environ.get("SLACK_SIGNING_SECRET"),
-                installation_store=ValidatedInstallationStore(),
+                installation_store=ValidatedInstallationStore(database=db_path),
                 oauth_settings=OAuthSettings(
                     client_id=client_id,
                     client_secret=client_secret,
@@ -295,10 +299,14 @@ class SkyfurlApp:
             video_url = f"{app_url}/videos/{video_id}.mp4"
             thumbnail_url = f"{app_url}/videos/{video_id}/thumbnail.jpg"
 
+            print(f"Successfully processed video {video_id}")
+            print(f"Video URL: {video_url}")
+            print(f"Thumbnail URL: {thumbnail_url}")
+
             # Update unfurl with video block
             self._update_unfurl_with_video(url, channel, ts, client, video_url, thumbnail_url)
 
-            print(f"Successfully processed video for {url}")
+            print(f"Successfully unfurled video for {url}")
 
         except Exception as e:
             print(f"Error processing video: {e}")
@@ -313,15 +321,22 @@ class SkyfurlApp:
             if not unfurl_data:
                 return
 
+            print(f"Unfurl data: {unfurl_data}")
+
             # Update the unfurl
-            client.chat_unfurl(
+            response = client.chat_unfurl(
                 channel=channel,
                 ts=ts,
                 unfurls={url: unfurl_data}
             )
 
+            if not response.get("ok"):
+                print(f"Slack API error: {response}")
+
         except Exception as e:
             print(f"Error updating unfurl with video: {e}")
+            import traceback
+            traceback.print_exc()
 
     def _update_unfurl_with_error(self, url: str, channel: str, ts: str, client):
         """Update the unfurl with an error message"""
